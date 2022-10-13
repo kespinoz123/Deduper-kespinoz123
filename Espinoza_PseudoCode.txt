@@ -1,0 +1,93 @@
+Author:  Itzel Espinoza              {\__/}
+Deduper P1                          ( • . •)
+                                     /  > 🧬
+--------------------------------------------------------------------------------------------------------------------------------------------  
+
+Define the problem    
+
+    Write an algorithm to remove reference based PCR duplicates from a sorted SAM file without memory overloading. 
+    PCR Duplicates are identical molecules produced during the amplification library step. That said, it is crucial
+    to remove PCR duplicates from sequencing data as it can lead to PCR bias, and incorrect gene quantification (if dealing with RNA Seq) in 
+    downstream analysis.   ╚(•⌂•)╝
+
+-------------------------------------------------------------------------------------------------------------------------------------------- 
+
+------------------ Algorithm Overview ------------------ 
+
+    1. Use samtools  to sort my SAM file before using it in my algorithm
+    2. Trim off barcodes contained in sorted SAM File
+    3. Quality filter my data
+        --> FASTQC
+        --> QS cutoff
+    4. Align reads to reference genome
+    5. De-duplicate 
+    6. Store PCR Duplicates + UMIs in banned list
+    7. Write SAM file 
+
+------------------  How to  De-duplicate SAM File? ------------------ 
+Use Unix commands like cut (specific SAM columns) and store the following inside a dictionary as keys and counts of each for values
+
+       Chromosome         RNAME | SAM Column 3
+       Position:          POS   | SAM Column 4
+       Strand Direction:  FLAG  | SAM Column 2 
+       Soft clipping        CIGAR | SAM Column 6
+        * Need to adjust for correct position, since SAM file has the left most based mapped position (
+        different from start position) assure its the correct location
+         
+         o	Forward strand + : 
+                Soft clipping = subtract soft clipped bases (left based mapped position same as start position)
+                Insertions    =  ignore/no effect
+                Deletions     =  ignore/no effect
+
+         o	Reverse strand - : 
+                Soft clipping =
+                Insertions    =  ignore/no effect
+                Insertions    =  add to get left based mapped position
+        
+       Remove known UMIs   QNAME | SAM Column 1
+         o	Search and store set of 96 known UMIS that are 8 bases long found in STL96 test file into a banned list
+         o	Error Correct UMIs
+         o  Example: NS500451:154:HWKTMBGXX:1:11101:15364:1139:GAACAGGT
+       
+
+------------------ Determine high level functions ------------------ 
+
+1. Def rev_comp: "Strand Directionality"
+    ''' Function to parse bitwise flag 16. Check if a segment is reverse complemented or not.
+    If return TRUE (set to 16), then the read is reverse complemented. If return FALSE, the read
+    is in + strand. '''
+   
+    If ((flag & 16)) == 16:
+        rev_comp = TRUE
+
+    
+2. Def adjusted position
+''' Ideally, this function would use the CIGAR string and adjust for the start position
+using the left most based mapping position. Refer to examples below. '''
+    CIGAR String input 
+    Output Correct Position :)
+
+------------------ Test examples (for individual functions)  ------------------
+
+
+Example 1: PCR Duplicate
+
+RNAME | POS | UMI | FLAG | CIGAR       ---> Adjusted Start Position  
+
+  3   | 29  | CCT |  -   | 10M3S                    41
+  3   | 29  | CCT |  -   | 5S10M3S                  41
+
+
+Correct Start Position = 41 for both = PCR Duplicate Discarded to banned list
+Example calculation: 5S10M3S 29+10+3S-1 (ignoring 5S) = 41 and -1 to be inclusive
+
+
+Example 2: Not a PCR Duplicate post start position adjustment
+
+RNAME | POS | UMI | FLAG | CIGAR       ---> Adjusted Start Position
+
+  3   | 29  | CCT |  -   | 10M3S                    41
+  3   | 14  | CCT |  +   | 2S18M                    12
+
+Differnt start positions, strand direction = Unique read goes to final outout SAM File
+
