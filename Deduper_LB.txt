@@ -1,0 +1,34 @@
+-------------------------
+Author: Itzel Espinoza
+Date: November 7th 2022
+-------------------------
+
+------------------------------------------------------------------------------------------------------------         
+                                    Commands Used After Completing Deduper
+------------------------------------------------------------------------------------------------------------ 
+
+--------- Header Count ---------
+> cat C1_SE_uniqAlign.deduped.sam | grep -E "^@" | wc -l
+output: 64
+
+--------- Original Reads --------- 
+> cat sorted_C1_SE_uniqAlign.sam | grep -v "^@" | wc -l
+output: 18186410
+
+--------- Unique Reads --------- 
+> cat C1_SE_uniqAlign.deduped.sam | grep -v "^@" | wc -l
+output: 13729938
+
+--------- Deduplicates --------- 
+# of Original reads - # of Unique reads = # of Deduplicates
+18186410 - 13729938 = 4456472
+
+--------- Unique Reads Per Chromosome --------- 
+> cat C1_SE_uniqAlign_deduped.sam | grep -v "^@" | cut -f 3 | sort |  uniq -c > unique_reads_per_chromosome.txt
+
+
+------------------------------------------------------------------------------------------------------------         
+                                    Using Samtools to sort input SAM File
+------------------------------------------------------------------------------------------------------------ 
+> conda activate bgmp_py310
+> samtools sort C1_SE_uniqAlign.sam -o sorted_C1_SE_uniqAlign.sam
