@@ -9,8 +9,10 @@
 #SBATCH --cpus-per-task=4               ### Number of cpus (cores) per task
 #SBATCH --partition=bgmp                ### partition to run things
 
+# Defining input and output files for deduplication process
 in_sam="/projects/bgmp/kespinoz/bioinfo/Bi624/Deduper/C1_SE_uniqAlign.sam"
 umi="/projects/bgmp/kespinoz/bioinfo/Bi624/Deduper/STL96.txt"
 out_sam="/projects/bgmp/kespinoz/bioinfo/Bi624/Deduper/C1_SE_uniqAlign.deduped.sam"
 
+# Running the deduplication Python script with the specified input files
 /usr/bin/time -v ./Espinoza_deduper.py -f $in_sam -u $umi -o $out_sam
